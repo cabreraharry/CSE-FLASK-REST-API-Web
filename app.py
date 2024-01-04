@@ -1,6 +1,5 @@
 from flask import Flask, make_response, jsonify, request, Response
 from flask_mysqldb import MySQL
-import dicttoxml
 
 app = Flask(__name__)
 
