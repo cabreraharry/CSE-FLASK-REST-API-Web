@@ -1,60 +1,98 @@
-from flask import Flask
-from flask_restful import Resource, Api, reqparse
-import mysql.connector
+from flask import Flask, make_response, jsonify, request, Response
+from flask_mysqldb import MySQL
+import dicttoxml
 
 app = Flask(__name__)
-api = Api(app)
 
-db = mysql.connector.connect(
-    host="localhost",
-    user="root",
-    password="9090",
-    database="customer_at_a_bookstore"
-)
-cursor = db.cursor(dictionary=True)
+app.config["MYSQL_HOST"] = "localhost"
+app.config["MYSQL_USER"] = "root"
+app.config["MYSQL_PASSWORD"] = "9090"
+app.config["MYSQL_DB"] = "customer_at_a_bookstore"
+app.config["MYSQL_CURSORCLASS"] = "DictCursor"
 
-parser = reqparse.RequestParser()
-parser.add_argument('book_title')
-parser.add_argument('publication_date')
-parser.add_argument('book_comments')
+mysql = MySQL(app)
 
-class BooksResource(Resource):
-    def get(self, book_id):
-        cursor.execute(f"SELECT * FROM books WHERE book_id = {book_id}")
-        book = cursor.fetchone()
-        if book:
-            return book, 200
-        else:
-            return {"message": "Book not found"}, 404
+def data_fetch(query):
+    cur = mysql.connection.cursor()
+    cur.execute(query)
+    data = cur.fetchall()
+    cur.close()
+    return data
 
-    def post(self):
-        args = parser.parse_args()
-        cursor.execute(f"INSERT INTO books (book_title, publication_date, book_comments) VALUES ('{args['book_title']}', '{args['publication_date']}', '{args['book_comments']}')")
-        db.commit()
-        return {"message": "Book added successfully"}, 201
+@app.route("/")
+def home():
+    return get_books()
 
-    def put(self, book_id):
-        args = parser.parse_args()
-        cursor.execute(f"UPDATE books SET book_title = '{args['book_title']}', publication_date = '{args['publication_date']}', book_comments = '{args['book_comments']}' WHERE book_id = {book_id}")
-        db.commit()
-        return {"message": "Book updated successfully"}, 200
 
-    def delete(self, book_id):
-        cursor.execute(f"DELETE FROM books WHERE book_id = {book_id}")
-        db.commit()
-        return {"message": "Book deleted successfully"}, 200
+@app.route("/books", methods=["GET"])
+def get_books():
+    data = data_fetch("SELECT * FROM books")
+    return make_response(jsonify(data), 200)
 
-class CustomersResource(Resource):
-    def get(self, customer_id):
-        cursor.execute(f"SELECT * FROM customers WHERE customer_id = {customer_id}")
-        customer = cursor.fetchone()
-        if customer:
-            return customer, 200
-        else:
-            return {"message": "Customer not found"}, 404
+@app.route("/books/<int:book_id>", methods=["GET"])
+def get_book_by_id(book_id):
+    data = data_fetch(f"SELECT * FROM books WHERE book_id = {book_id}")
+    return make_response(jsonify(data), 200)
 
-api.add_resource(BooksResource, '/books/<int:book_id>')
-api.add_resource(CustomersResource, '/customers/<int:customer_id>')
+@app.route("/books", methods=["POST"])
+def add_book():
+    cur = mysql.connection.cursor()
+    info = request.get_json()
+    book_id = info["book_id"]
+    book_title = info["book_title"]
+    publication_date = info["publication_date"]
+    book_comments = info["book_comments"]
+    
 
-if __name__ == '__main__':
+    cur.execute(
+        """
+        INSERT INTO books (book_id, book_title, publication_date, book_comments) 
+        VALUES (%s, %s, %s, %s)
+        """,
+        (book_id, book_title, publication_date, book_comments),
+    )
+    mysql.connection.commit()
+    cur.close()
+
+    return make_response(jsonify({"message": "Book added successfully"}), 201)
+
+@app.route("/books/<int:book_id>", methods=["PUT"])
+def update_book(book_id):
+    cur = mysql.connection.cursor()
+    info = request.get_json()
+    book_title = info["book_title"]
+    publication_date = info["publication_date"]
+    book_comments = info["book_comments"]
+
+    cur.execute(
+        """
+        UPDATE books 
+        SET book_title = %s, publication_date = %s, book_comments = %s
+        WHERE book_id = %s
+        """,
+        (book_title, publication_date, book_comments, book_id),
+    )
+    mysql.connection.commit()
+    rows_affected = cur.rowcount
+    cur.close()
+
+    return make_response(
+        jsonify({"message": "Book updated successfully", "rows_affected": rows_affected}),
+        200,
+    )
+
+@app.route("/books/<int:book_id>", methods=["DELETE"])
+def delete_book(book_id):
+    cur = mysql.connection.cursor()
+    cur.execute("DELETE FROM books WHERE book_id = %s", (book_id,))
+    mysql.connection.commit()
+    rows_affected = cur.rowcount
+    cur.close()
+
+    return make_response(
+        jsonify({"message": "Book deleted successfully", "rows_affected": rows_affected}),
+        200,
+    )
+
+if __name__ == "__main__":
     app.run(debug=True)
