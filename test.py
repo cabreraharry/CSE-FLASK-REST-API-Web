@@ -1,6 +1,6 @@
 import unittest
 import warnings
-from rest_api import app
+from app import app
 
 
 class MyAppTests(unittest.TestCase):
