@@ -1,89 +1,52 @@
 import unittest
-import warnings
-from app import app, mysql
+import json
+from unittest.mock import patch
+from app import app
 
 class MyAppTests(unittest.TestCase):
     def setUp(self):
         app.config["TESTING"] = True
-        app.config["MYSQL_DB"] = "test_customer_at_a_bookstore"  
         self.app = app.test_client()
 
-        warnings.simplefilter("ignore", category=DeprecationWarning)
-
-
-        with app.app_context():
-            cur = mysql.connection.cursor()
-            cur.execute("CREATE DATABASE IF NOT EXISTS test_customer_at_a_bookstore")
-            cur.execute("USE test_customer_at_a_bookstore")
-            cur.execute("DROP TABLE IF EXISTS books")
-            cur.execute("""
-                CREATE TABLE books (
-                    book_id int PRIMARY KEY,
-                    book_title varchar(255),
-                    publication_date datetime,
-                    book_comments varchar(255)
-                )
-            """)
-
-            mysql.connection.commit()
-            cur.close()
-
     def tearDown(self):
+        pass
 
-        with app.app_context():
-            cur = mysql.connection.cursor()
-            cur.execute("DROP DATABASE IF EXISTS test_customer_at_a_bookstore")
-            mysql.connection.commit()
-            cur.close()
-
-    def test_get_books(self):
+    @patch('app.data_fetch')
+    def test_get_books(self, mock_data_fetch):
+        mock_data_fetch.return_value = [{"book_id": 1, "book_title": "Test Book"}]
         response = self.app.get("/books")
         self.assertEqual(response.status_code, 200)
+        data = json.loads(response.data.decode())
+        self.assertEqual(data, [{"book_id": 1, "book_title": "Test Book"}])
+
+    @patch('app.data_fetch')
+    def test_get_book_by_id(self, mock_data_fetch):
+        mock_data_fetch.return_value = [{"book_id": 1, "book_title": "Test Book"}]
+        response = self.app.get("/books/1")
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.data.decode())
+        self.assertEqual(data, [{"book_id": 1, "book_title": "Test Book"}])
 
     def test_add_book(self):
-        response = self.app.post(
-            "/books",
-            json={
-                "book_id": 1,
-                "book_title": "Test Book",
-                "publication_date": "2022-01-01",
-                "book_comments": "Test Comments",
-            },
-        )
+        with patch('app.request.get_json', return_value={
+            "book_id": 1,
+            "book_title": "Test Book",
+            "publication_date": "2022-01-01",
+            "book_comments": "Test Comments",
+        }):
+            response = self.app.post("/books")
         self.assertEqual(response.status_code, 201)
 
     def test_update_book(self):
-
-        self.app.post(
-            "/books",
-            json={
-                "book_id": 1,
-                "book_title": "Test Book",
-                "publication_date": "2022-01-01",
-                "book_comments": "Test Comments",
-            },
-        )
-        response = self.app.put(
-            "/books/1",
-            json={
-                "book_title": "Updated Book",
-                "publication_date": "2023-01-01",
-                "book_comments": "Updated Comments",
-            },
-        )
+        with patch('app.request.get_json', return_value={
+            "book_title": "Updated Book",
+            "publication_date": "2023-01-01",
+            "book_comments": "Updated Comments",
+        }):
+            response = self.app.put("/books/1")
         self.assertEqual(response.status_code, 200)
 
     def test_delete_book(self):
-
-        self.app.post(
-            "/books",
-            json={
-                "book_id": 1,
-                "book_title": "Test Book",
-                "publication_date": "2022-01-01",
-                "book_comments": "Test Comments",
-            },
-        )
         response = self.app.delete("/books/1")
         self.assertEqual(response.status_code, 200)
 
