@@ -1,6 +1,7 @@
 import unittest
 import json
 from unittest.mock import patch
+from flask import Flask
 from app import app
 
 class MyAppTests(unittest.TestCase):
@@ -28,22 +29,31 @@ class MyAppTests(unittest.TestCase):
         self.assertEqual(data, [{"book_id": 1, "book_title": "Test Book"}])
 
     def test_add_book(self):
-        with patch('app.request.get_json', return_value={
+        with app.test_request_context(json={
             "book_id": 1,
             "book_title": "Test Book",
             "publication_date": "2022-01-01",
             "book_comments": "Test Comments",
         }):
-            response = self.app.post("/books")
+            response = self.app.post("/books", json={
+                "book_id": 1,
+                "book_title": "Test Book",
+                "publication_date": "2022-01-01",
+                "book_comments": "Test Comments",
+            })
         self.assertEqual(response.status_code, 201)
 
     def test_update_book(self):
-        with patch('app.request.get_json', return_value={
+        with app.test_request_context(json={
             "book_title": "Updated Book",
             "publication_date": "2023-01-01",
             "book_comments": "Updated Comments",
         }):
-            response = self.app.put("/books/1")
+            response = self.app.put("/books/1", json={
+                "book_title": "Updated Book",
+                "publication_date": "2023-01-01",
+                "book_comments": "Updated Comments",
+            })
         self.assertEqual(response.status_code, 200)
 
     def test_delete_book(self):

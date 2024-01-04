@@ -1,5 +1,6 @@
 from flask import Flask, make_response, jsonify, request, Response
 from flask_mysqldb import MySQL
+from flask_jwt_extended import JWTManager, jwt_required, create_access_token, get_jwt_identity
 
 app = Flask(__name__)
 
@@ -32,6 +33,24 @@ def get_books():
 def get_book_by_id(book_id):
     data = data_fetch(f"SELECT * FROM books WHERE book_id = {book_id}")
     return make_response(jsonify(data), 200)
+
+@app.route("/search/books", methods=["GET"])
+def search_books():
+    title = request.args.get("title")
+    publication_date = request.args.get("publication_date")
+    book_comments = request.args.get("book_comments")
+
+    query = "SELECT * FROM books WHERE 1=1"
+    if title:
+        query += f" AND book_title LIKE '%{title}%'"
+    if publication_date:
+        query += f" AND publication_date = '{publication_date}'"
+    if book_comments:
+        query += f" AND book_comments LIKE '%{book_comments}%'"
+
+    data = data_fetch(query)
+    return make_response(jsonify(data), 200)
+
 
 @app.route("/books", methods=["POST"])
 def add_book():
@@ -92,6 +111,29 @@ def delete_book(book_id):
         jsonify({"message": "Book deleted successfully", "rows_affected": rows_affected}),
         200,
     )
+
+
+app.config["JWT_SECRET_KEY"] = "your-secret-key"
+jwt = JWTManager(app)
+
+@app.route("/login", methods=["POST"])
+def login():
+    username = request.json.get("username", None)
+    password = request.json.get("password", None)
+
+    if username == "harry" and password == "harry123":
+        access_token = create_access_token(identity=username)
+        return jsonify(access_token=access_token), 200
+    else:
+        return jsonify({"message": "Invalid credentials"}), 401
+
+
+@app.route("/secure-endpoint", methods=["GET"])
+@jwt_required()
+def secure_endpoint():
+    current_user = get_jwt_identity()
+    return jsonify(logged_in_as=current_user), 200
+
 
 if __name__ == "__main__":
     app.run(debug=True)
