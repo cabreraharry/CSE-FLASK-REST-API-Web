@@ -1,6 +1,5 @@
 from flask import Flask, make_response, jsonify, request, Response
 from flask_mysqldb import MySQL
-from flask_jwt_extended import JWTManager, jwt_required, create_access_token, get_jwt_identity
 
 app = Flask(__name__)
 
@@ -113,26 +112,26 @@ def delete_book(book_id):
     )
 
 
-app.config["JWT_SECRET_KEY"] = "your-secret-key"
-jwt = JWTManager(app)
+# app.config["JWT_SECRET_KEY"] = "your-secret-key"
+# jwt = JWTManager(app)
 
-@app.route("/login", methods=["POST"])
-def login():
-    username = request.json.get("username", None)
-    password = request.json.get("password", None)
+# @app.route("/login", methods=["POST"])
+# def login():
+#     username = request.json.get("username", None)
+#     password = request.json.get("password", None)
 
-    if username == "harry" and password == "harry123":
-        access_token = create_access_token(identity=username)
-        return jsonify(access_token=access_token), 200
-    else:
-        return jsonify({"message": "Invalid credentials"}), 401
+#     if username == "harry" and password == "harry123":
+#         access_token = create_access_token(identity=username)
+#         return jsonify(access_token=access_token), 200
+#     else:
+#         return jsonify({"message": "Invalid credentials"}), 401
 
 
-@app.route("/secure-endpoint", methods=["GET"])
-@jwt_required()
-def secure_endpoint():
-    current_user = get_jwt_identity()
-    return jsonify(logged_in_as=current_user), 200
+# @app.route("/secure-endpoint", methods=["GET"])
+# @jwt_required()
+# def secure_endpoint():
+#     current_user = get_jwt_identity()
+#     return jsonify(logged_in_as=current_user), 200
 
 
 if __name__ == "__main__":
