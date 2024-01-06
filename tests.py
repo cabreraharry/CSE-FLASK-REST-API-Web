@@ -31,7 +31,7 @@ class MyApiTests(unittest.TestCase):
         response = self.app.get('/books')
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data)
-        self.assertEqual(len(data), 21) 
+        self.assertEqual(len(data), 22)
 
     def test_get_book_by_id(self):
         response = self.app.get('/books/1')
