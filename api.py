@@ -9,6 +9,7 @@ app.config["MYSQL_PASSWORD"] = "9090"
 app.config["MYSQL_DB"] = "customer_at_a_bookstore"
 app.config["MYSQL_CURSORCLASS"] = "DictCursor"
 
+
 mysql = MySQL(app)
 
 def data_fetch(query):
@@ -65,8 +66,7 @@ def add_book():
         """
         INSERT INTO books (book_id, book_title, publication_date, book_comments) 
         VALUES (%s, %s, %s, %s)
-        """,
-        (book_id, book_title, publication_date, book_comments),
+        """,(book_id, book_title, publication_date, book_comments),
     )
     mysql.connection.commit()
     cur.close()

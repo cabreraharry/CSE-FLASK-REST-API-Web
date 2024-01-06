@@ -8,7 +8,6 @@ class MyApiTests(unittest.TestCase):
         self.app = app.test_client()
         self.app.testing = True
 
-        # Create a test book for the database
         with app.app_context():
             cur = mysql.connection.cursor()
             cur.execute(
@@ -21,7 +20,7 @@ class MyApiTests(unittest.TestCase):
             cur.close()
 
     def tearDown(self):
-        # Clean up the test data after each test
+
         with app.app_context():
             cur = mysql.connection.cursor()
             cur.execute("DELETE FROM books WHERE book_id = 1")
@@ -32,28 +31,27 @@ class MyApiTests(unittest.TestCase):
         response = self.app.get('/books')
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data)
-        self.assertEqual(len(data), 21)  # Expecting only one book in the response
+        self.assertEqual(len(data), 21) 
 
     def test_get_book_by_id(self):
         response = self.app.get('/books/1')
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data)
         self.assertTrue(isinstance(data, list))
-        self.assertEqual(len(data), 1)  # Expecting only one book in the response
-
+        self.assertEqual(len(data), 1)  
     def test_search_books(self):
         response = self.app.get('/search/books?title=Test&publication_date=2022-01-01&book_comments=Test')
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data)
         self.assertTrue(isinstance(data, list))
-        self.assertEqual(len(data), 1)  # Expecting only one book in the response
+        self.assertEqual(len(data), 1) 
 
     def test_add_book(self):
         data = {
-            'book_id': 100,  # Change the book_id to avoid duplicates
-            'book_title': 'New Book',
-            'publication_date': '2022-01-02',
-            'book_comments': 'New Comment'
+            "book_id": 100,  
+            "book_title": "New Book",
+            "publication_date": "2022-01-02",
+            "book_comments": "New Comment"
         }
         response = self.app.post('/books', json=data)
         self.assertEqual(response.status_code, 201)
